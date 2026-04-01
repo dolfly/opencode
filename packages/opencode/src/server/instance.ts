@@ -26,6 +26,7 @@ import { ExperimentalRoutes } from "./routes/experimental"
 import { ProviderRoutes } from "./routes/provider"
 import { EventRoutes } from "./routes/event"
 import { errorHandler } from "./middleware"
+import { ShareNext } from "@/share/share-next"
 
 const log = Log.create({ service: "server" })
 
@@ -160,6 +161,27 @@ export const InstanceRoutes = (app?: Hono) =>
       async (c) => {
         const commands = await Command.list()
         return c.json(commands)
+      },
+    )
+    .get(
+      "/share",
+      describeRoute({
+        summary: "Get share info",
+        description: "Retrieve the effective share behavior for the current OpenCode instance.",
+        operationId: "app.share",
+        responses: {
+          200: {
+            description: "Share info",
+            content: {
+              "application/json": {
+                schema: resolver(ShareNext.Info),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        return c.json(await ShareNext.info())
       },
     )
     .get(

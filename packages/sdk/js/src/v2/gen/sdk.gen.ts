@@ -7,6 +7,7 @@ import type {
   AppAgentsResponses,
   AppLogErrors,
   AppLogResponses,
+  AppShareResponses,
   AppSkillsResponses,
   Auth as Auth3,
   AuthRemoveErrors,
@@ -454,6 +455,36 @@ export class App extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Get share info
+   *
+   * Retrieve the effective share behavior for the current OpenCode instance.
+   */
+  public share<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<AppShareResponses, unknown, ThrowOnError>({
+      url: "/share",
+      ...options,
+      ...params,
     })
   }
 

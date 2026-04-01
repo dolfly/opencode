@@ -1,6 +1,7 @@
 import { Bus } from "@/bus"
 import { Account } from "@/account"
 import { Config } from "@/config/config"
+import { Flag } from "@/flag/flag"
 import { Provider } from "@/provider/provider"
 import { ProviderID, ModelID } from "@/provider/schema"
 import { Session } from "@/session"
@@ -10,9 +11,23 @@ import { Database, eq } from "@/storage/db"
 import { SessionShareTable } from "./share.sql"
 import { Log } from "@/util/log"
 import type * as SDK from "@opencode-ai/sdk/v2"
+import z from "zod"
 
 export namespace ShareNext {
   const log = Log.create({ service: "share-next" })
+
+  export const Info = z
+    .discriminatedUnion("disabled", [
+      z.object({
+        disabled: z.literal(true),
+      }),
+      z.object({
+        disabled: z.literal(false),
+        visibility: z.enum(["public", "private"]),
+        mode: z.enum(["manual", "auto"]),
+      }),
+    ])
+    .meta({ ref: "ShareInfo" })
 
   type ApiEndpoints = {
     create: string
@@ -33,6 +48,19 @@ export namespace ShareNext {
   const legacyApi = apiEndpoints("share")
   const consoleApi = apiEndpoints("shares")
 
+  export async function info(): Promise<z.infer<typeof Info>> {
+    const cfg = await Config.get()
+    if (disabled || cfg.share === "disabled") {
+      return { disabled: true }
+    }
+    const active = await Account.active()
+    return {
+      disabled: false,
+      visibility: active?.active_org_id || cfg.enterprise?.url ? "private" : "public",
+      mode: Flag.OPENCODE_AUTO_SHARE || cfg.share === "auto" ? "auto" : "manual",
+    }
+  }
+
   export async function url() {
     const req = await request()
     return req.baseUrl
@@ -44,8 +72,8 @@ export namespace ShareNext {
     baseUrl: string
   }> {
     const headers: Record<string, string> = {}
-
     const active = await Account.active()
+
     if (!active?.active_org_id) {
       const baseUrl = await Config.get().then((x) => x.enterprise?.url ?? "https://opncd.ai")
       return { headers, api: legacyApi, baseUrl }

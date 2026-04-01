@@ -74,3 +74,80 @@ test("ShareNext.request fails when org account has no token", async () => {
     Account.token = originalToken
   }
 })
+
+test("ShareNext.info returns disabled when sharing is disabled in config", async () => {
+  const originalConfigGet = Config.get
+
+  Config.get = mock(async () => ({ share: "disabled" as const }))
+
+  try {
+    expect(await ShareNext.info()).toEqual({ disabled: true })
+  } finally {
+    Config.get = originalConfigGet
+  }
+})
+
+test("ShareNext.info returns public manual share info without active org", async () => {
+  const originalActive = Account.active
+  const originalConfigGet = Config.get
+
+  Account.active = mock(async () => undefined)
+  Config.get = mock(async () => ({ share: "manual" as const }))
+
+  try {
+    expect(await ShareNext.info()).toEqual({
+      disabled: false,
+      visibility: "public",
+      mode: "manual",
+    })
+  } finally {
+    Account.active = originalActive
+    Config.get = originalConfigGet
+  }
+})
+
+test("ShareNext.info returns private manual share info with enterprise url", async () => {
+  const originalActive = Account.active
+  const originalConfigGet = Config.get
+
+  Account.active = mock(async () => undefined)
+  Config.get = mock(async () => ({
+    share: "manual" as const,
+    enterprise: { url: "https://internal.example.com" },
+  }))
+
+  try {
+    expect(await ShareNext.info()).toEqual({
+      disabled: false,
+      visibility: "private",
+      mode: "manual",
+    })
+  } finally {
+    Account.active = originalActive
+    Config.get = originalConfigGet
+  }
+})
+
+test("ShareNext.info returns private auto share info with active org", async () => {
+  const originalActive = Account.active
+  const originalConfigGet = Config.get
+
+  Account.active = mock(async () => ({
+    id: AccountID.make("account-1"),
+    email: "user@example.com",
+    url: "https://control.example.com",
+    active_org_id: OrgID.make("org-1"),
+  }))
+  Config.get = mock(async () => ({ share: "auto" as const }))
+
+  try {
+    expect(await ShareNext.info()).toEqual({
+      disabled: false,
+      visibility: "private",
+      mode: "auto",
+    })
+  } finally {
+    Account.active = originalActive
+    Config.get = originalConfigGet
+  }
+})

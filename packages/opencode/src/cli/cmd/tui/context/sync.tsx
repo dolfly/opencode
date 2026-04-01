@@ -14,6 +14,7 @@ import type {
   McpResource,
   FormatterStatus,
   SessionStatus,
+  ShareInfo,
   ProviderListResponse,
   ProviderAuthMethod,
   VcsInfo,
@@ -39,6 +40,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       provider_default: Record<string, string>
       provider_next: ProviderListResponse
       provider_auth: Record<string, ProviderAuthMethod[]>
+      share: ShareInfo
       agent: Agent[]
       command: Command[]
       permission: {
@@ -82,6 +84,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         connected: [],
       },
       provider_auth: {},
+      share: { disabled: true },
       config: {},
       status: "loading",
       agent: [],
@@ -366,11 +369,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       const providersPromise = sdk.client.config.providers({}, { throwOnError: true })
       const providerListPromise = sdk.client.provider.list({}, { throwOnError: true })
       const agentsPromise = sdk.client.app.agents({}, { throwOnError: true })
+      const sharePromise = sdk.client.app.share({}, { throwOnError: true })
       const configPromise = sdk.client.config.get({}, { throwOnError: true })
       const blockingRequests: Promise<unknown>[] = [
         providersPromise,
         providerListPromise,
         agentsPromise,
+        sharePromise,
         configPromise,
         ...(args.continue ? [sessionListPromise] : []),
       ]
@@ -380,6 +385,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           const providersResponse = providersPromise.then((x) => x.data!)
           const providerListResponse = providerListPromise.then((x) => x.data!)
           const agentsResponse = agentsPromise.then((x) => x.data ?? [])
+          const shareResponse = sharePromise.then((x) => x.data!)
           const configResponse = configPromise.then((x) => x.data!)
           const sessionListResponse = args.continue ? sessionListPromise : undefined
 
@@ -387,20 +393,23 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             providersResponse,
             providerListResponse,
             agentsResponse,
+            shareResponse,
             configResponse,
             ...(sessionListResponse ? [sessionListResponse] : []),
           ]).then((responses) => {
             const providers = responses[0]
             const providerList = responses[1]
             const agents = responses[2]
-            const config = responses[3]
-            const sessions = responses[4]
+            const share = responses[3]
+            const config = responses[4]
+            const sessions = responses[5]
 
             batch(() => {
               setStore("provider", reconcile(providers.providers))
               setStore("provider_default", reconcile(providers.default))
               setStore("provider_next", reconcile(providerList))
               setStore("agent", reconcile(agents))
+              setStore("share", reconcile(share))
               setStore("config", reconcile(config))
               if (sessions !== undefined) setStore("session", reconcile(sessions))
             })

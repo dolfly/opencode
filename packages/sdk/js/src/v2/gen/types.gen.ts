@@ -2016,6 +2016,16 @@ export type Command = {
   hints: Array<string>
 }
 
+export type ShareInfo =
+  | {
+      disabled: true
+    }
+  | {
+      disabled: false
+      visibility: "public" | "private"
+      mode: "manual" | "auto"
+    }
+
 export type Agent = {
   name: string
   description?: string
@@ -5082,6 +5092,25 @@ export type CommandListResponses = {
 }
 
 export type CommandListResponse = CommandListResponses[keyof CommandListResponses]
+
+export type AppShareData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/share"
+}
+
+export type AppShareResponses = {
+  /**
+   * Share info
+   */
+  200: ShareInfo
+}
+
+export type AppShareResponse = AppShareResponses[keyof AppShareResponses]
 
 export type AppAgentsData = {
   body?: never

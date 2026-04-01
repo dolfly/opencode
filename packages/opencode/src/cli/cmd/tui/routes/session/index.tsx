@@ -361,7 +361,7 @@ export function Session() {
       suggested: route.type === "session",
       keybind: "session_share",
       category: "Session",
-      enabled: sync.data.config.share !== "disabled",
+      enabled: !sync.data.share.disabled,
       slash: {
         name: "share",
       },
@@ -376,7 +376,11 @@ export function Session() {
           dialog.clear()
           return
         }
-        if (!kv.get("share_consent", false)) {
+        if (
+          !kv.get("share_consent", false) &&
+          "visibility" in sync.data.share &&
+          sync.data.share.visibility === "public"
+        ) {
           const ok = await DialogConfirm.show(
             dialog,
             "Share Session",
