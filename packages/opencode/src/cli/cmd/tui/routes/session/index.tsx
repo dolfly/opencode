@@ -376,6 +376,15 @@ export function Session() {
           dialog.clear()
           return
         }
+        if (!kv.get("share_consent", false)) {
+          const ok = await DialogConfirm.show(
+            dialog,
+            "Share Session",
+            "This creates a public link to your conversation. Are you sure you want to share it?",
+          )
+          if (ok !== true) return
+          kv.set("share_consent", true)
+        }
         await sdk.client.session
           .share({
             sessionID: route.sessionID,
